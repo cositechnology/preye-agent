@@ -1,0 +1,137 @@
+name: PR Review
+
+on:
+  workflow_call:
+    inputs:
+      reviewer_repo:
+        description: "Owner/repo of the reviewer"
+        type: string
+        default: your-org/preye-agent
+      reviewer_ref:
+        description: "Ref (tag/branch) of the reviewer repo"
+        type: string
+        default: v1
+    secrets:
+      OPENAI_API_KEY:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out calling repo (PR code)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out reviewer repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.reviewer_repo }}
+          ref: ${{ inputs.reviewer_ref }}
+          path: reviewer
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install reviewer deps
+        working-directory: reviewer
+        run: npm ci
+
+      - name: Build reviewer
+        working-directory: reviewer
+        run: npm run build
+
+      - name: Run review (internal PRs)
+        if: ${{ github.event.pull_request.head.repo.fork == false }}
+        working-directory: .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node reviewer/dist/cli.js ${{ github.repository }} ${{ github.event.pull_request.number }}
+
+      - name: Run review (fork PRs - summary only)
+        if: ${{ github.event.pull_request.head.repo.fork == true }}
+        working-directory: .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node reviewer/dist/cli.js ${{ github.repository }} ${{ github.event.pull_request.number }}
+name: PR Review
+
+on:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+      provider:
+        type: string
+        default: openai
+      model:
+        type: string
+        default: gpt-4o
+    secrets:
+      OPENAI_API_KEY:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out calling repo (PR code)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out reviewer repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          path: reviewer
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install reviewer deps
+        working-directory: reviewer
+        run: npm ci
+
+      - name: Build reviewer
+        working-directory: reviewer
+        run: npm run build
+
+      - name: Run review (internal PRs - can publish)
+        if: ${{ github.event.pull_request.head.repo.fork == false }}
+        working-directory: reviewer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node dist/cli.js ${{ github.repository }} ${{ github.event.pull_request.number }}
+
+      - name: Run review (fork PRs - summary only)
+        if: ${{ github.event.pull_request.head.repo.fork == true }}
+        working-directory: reviewer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node dist/cli.js ${{ github.repository }} ${{ github.event.pull_request.number }}
+

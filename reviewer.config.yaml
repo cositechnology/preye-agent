@@ -1,0 +1,10 @@
+provider: openai # or anthropic
+model: gpt-4o-mini
+categories: [Quality, Correctness, Security]
+publish: false
+graph:
+  enabled: true
+  depth: 2
+  maxFiles: 20
+  maxSlicesPerFile: 4
+  maxCharsPerSlice: 1500
