@@ -37,6 +37,7 @@ jobs:
           ref: ${{ inputs.reviewer_ref }}
           path: reviewer
           fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
