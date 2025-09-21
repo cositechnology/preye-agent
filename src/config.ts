@@ -72,11 +72,21 @@ function tryLoad(file: string): unknown | undefined {
 }
 
 export async function loadConfig(cwd = process.cwd()): Promise<ReviewerConfig> {
-  const candidates = [
+  const localCandidates = [
     "reviewer.config.yaml",
     "reviewer.config.yml",
     "reviewer.config.json",
   ].map((f) => path.join(cwd, f));
+  // Fallback: when running as a reusable workflow, the reviewer code is often
+  // checked out into ./reviewer. Use its default config if the caller doesn't
+  // provide one in its root.
+  const fallbackDir = path.join(cwd, "reviewer");
+  const fallbackCandidates = [
+    "reviewer.config.yaml",
+    "reviewer.config.yml",
+    "reviewer.config.json",
+  ].map((f) => path.join(fallbackDir, f));
+  const candidates = [...localCandidates, ...fallbackCandidates];
   let data: unknown | undefined;
   for (const file of candidates) {
     data = tryLoad(file);
