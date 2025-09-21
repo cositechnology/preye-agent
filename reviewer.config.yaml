@@ -1,5 +1,5 @@
 provider: openai # or anthropic
-model: gpt-4o-mini
+model: gpt-5-mini
 categories: [Quality, Correctness, Security]
 publish: false
 graph:
